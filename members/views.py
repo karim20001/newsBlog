@@ -7,13 +7,14 @@ from rest_framework.settings import api_settings
 from rest_framework.generics import GenericAPIView
 from django.contrib.auth import login, logout
 from rest_framework import generics
+from django.shortcuts import render, redirect
 
 from members.serializers import UserSignUpSerializers, UserLoginSerializer
 
 class UserSignUpViewSet(generics.CreateAPIView):
 
     # queryset = User.objects.all().order_by('-date_joined')
-    queryset = User.objects.all()
+    # queryset = User.objects.all()
     # permission_classes = (AllowAny,)
     serializer_class = UserSignUpSerializers
 
@@ -51,3 +52,7 @@ class UserLoginApiView(GenericAPIView):
         #     return Response({'message': 'd'}, status.HTTP_202_ACCEPTED)
         
         # return Response("", status.HTTP_400_BAD_REQUEST)
+
+def UserLogoutApiView(request):
+    logout(request)
+    return redirect("sign-up")

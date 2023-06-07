@@ -45,7 +45,8 @@ class Post(models.Model):
 
     def get_absolute_url(self):
         return reverse("home")
-
+    
+    @property
     def true_comment_count(self):
         return Comment.objects.filter(post_id=self.id, status=True).count()
 
