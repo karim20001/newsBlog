@@ -47,6 +47,10 @@ class Post(models.Model):
         return reverse("home")
     
     @property
+    def author_name(self):
+        return f"{self.author.first_name} {self.author.last_name}"
+    
+    @property
     def true_comment_count(self):
         return Comment.objects.filter(post_id=self.id, status=True).count()
 

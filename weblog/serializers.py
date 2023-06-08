@@ -7,10 +7,12 @@ from .models import Post, Comment, Tag, Category
 class PostSerializer(serializers.ModelSerializer):
 
     count_comments = serializers.IntegerField(source="true_comment_count", read_only=True)
+    author_name = serializers.ReadOnlyField()
 
     class Meta:
         model = Post
-        fields = ('id', 'title', 'image', 'date', 'visitors', 'body', 'author', 'tags', 'category', 'promote', 'count_comments')
+        fields = ('id', 'title', 'image', 'date', 'visitors', 'body', 'author_name', 'tags', 'category', 'promote', 'count_comments')
+        depth = 1
 
 class PostCreateSerializer(serializers.ModelSerializer):
     
@@ -46,8 +48,29 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class CommentSerializer(serializers.ModelSerializer):
+class ChildCommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
+        fields = ('name', 'text', 'date_added')
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    # child_comment = ChildCommentSerializer(read_only=True, many=True)
+    # child_comment = serializers.SerializerMethodField()
+    class Meta:
+        model = Comment
         fields = ('name', 'text', 'date_added', 'child')
+        depth = 1
+    
+    
+    # def get_child_comment(self, obj):
+    #     child_comment = Comment.objects.filter(id__in=obj.child)
+    #     return ChildCommentSerializer(child_comment, many=True).data
+
+
+class AddCommentSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Comment
+        fields = ('text',)

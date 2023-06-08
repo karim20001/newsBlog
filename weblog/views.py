@@ -13,7 +13,7 @@ from django.shortcuts import get_object_or_404
 
 from .serializers import PostSerializer, PostCreateSerializer
 from .serializers import TagSerializer, CategorySerializer
-from .serializers import CommentSerializer
+from .serializers import CommentSerializer, AddCommentSerializer
 from .models import Post, Tag, Category, Comment
 from .pagination import AllArticlesPaginator
 from .filters import DateFilter
@@ -150,11 +150,11 @@ class UpdatePostApiView(generics.ListAPIView,
         return Post.objects.filter(id=self.kwargs['pk'])
     
 
-class ArticleApiView(generics.GenericAPIView):
+class ArticleApiView(APIView):
     serializer_class = PostSerializer
 
-    def get(self, request):
-        post_query = self.get_queryset()
+    def get(self, request, pk):
+        post_query = get_object_or_404(Post, id=pk)
         post_query.visitors += 1
         post_query.save()
         post_serialize = self.serializer_class(post_query)
@@ -163,9 +163,28 @@ class ArticleApiView(generics.GenericAPIView):
         comment_serialize = CommentSerializer(comment_query, many=True)
 
         return Response({
-            "post": post_serialize,
-            "comment":comment_serialize
+            "post": post_serialize.data,
+            "comment":comment_serialize.data
         })
-    def get_queryset(self):
-        # return Post.objects.filter(id=self.kwargs['pk'])
-        return get_object_or_404(Post, id=self.kwargs['pk'])
+    
+
+class AddCommentApiView(generics.CreateAPIView):
+    serializer_class = AddCommentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        comment_name = f"{self.request.user.first_name} {self.request.user.last_name}"
+        post = Post.objects.get(id=self.kwargs["pk"])
+        return serializer.save(name=comment_name, post=post)
+
+
+class AddSubCommentApiView(generics.CreateAPIView):
+    serializer_class = AddCommentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        comment_name = f"{self.request.user.first_name} {self.request.user.last_name}"
+        post = Post.objects.get(id=self.kwargs["pk"])
+        parent = Comment.objects.get(id=self.kwargs["id"])
+        parent.child.add(serializer.save(name=comment_name, post=post, parent=parent))
+        parent.save()
