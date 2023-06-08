@@ -7,12 +7,17 @@ from rest_framework.response import Response
 from django.db.models import Count
 from django.core.paginator import Paginator
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters
+from rest_framework import filters, status
+from rest_framework import permissions
+from django.shortcuts import get_object_or_404
 
-from .serializers import PostSerializer
-from .models import Post
+from .serializers import PostSerializer, PostCreateSerializer
+from .serializers import TagSerializer, CategorySerializer
+from .serializers import CommentSerializer
+from .models import Post, Tag, Category, Comment
 from .pagination import AllArticlesPaginator
 from .filters import DateFilter
+from .permissions import AuthenticateOwnerPost
 
 
 class HomeApiView(
@@ -85,10 +90,82 @@ class AllArticlesApiView(generics.ListAPIView):
         order_by = self.request.GET.get('order_by')
         if order_by != None and order_by != "":
             order_by = order_by.split(",")
-            
+
             for item in order_by:
                 if item.find("visitors") != -1 or item.find("date") != -1:
                     queryset = queryset.order_by(item)
         
         return queryset
+
+
+class UserProfileApiView(generics.ListAPIView):
+    serializer_class = PostSerializer
+    pagination_class = AllArticlesPaginator
+    permission_classes = [permissions.IsAuthenticated,]
+
+    def get_queryset(self):
+        queryset = Post.objects.filter(author = self.request.user)
+        return queryset
+
+
+class CreatePostApiView(generics.ListCreateAPIView,
+                        generics.GenericAPIView):
     
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PostCreateSerializer
+
+    def get(self, request):
+        categories = Category.objects.all()
+        serialize_cat = CategorySerializer(categories, many=True)
+
+        tags = Tag.objects.all()
+        serialize_tag = TagSerializer(tags, many=True)
+
+        return Response({
+            "category": serialize_cat.data,
+            "tag": serialize_tag.data,
+        })
+        
+    def perform_create(self, serializer):
+        return serializer.save(author=self.request.user)
+    
+
+class DeletePostApiView(generics.DestroyAPIView):
+    serializer_class = PostSerializer
+    permission_classes = [permissions.IsAuthenticated,
+                          AuthenticateOwnerPost]
+    # success_url = reverse_lazy('index')
+
+    def get_queryset(self):
+        return Post.objects.all()
+
+class UpdatePostApiView(generics.ListAPIView,
+                        generics.UpdateAPIView):
+    
+    serializer_class = PostCreateSerializer
+    permission_classes = [permissions.IsAuthenticated,
+                          AuthenticateOwnerPost]
+    
+    def get_queryset(self):
+        return Post.objects.filter(id=self.kwargs['pk'])
+    
+
+class ArticleApiView(generics.GenericAPIView):
+    serializer_class = PostSerializer
+
+    def get(self, request):
+        post_query = self.get_queryset()
+        post_query.visitors += 1
+        post_query.save()
+        post_serialize = self.serializer_class(post_query)
+
+        comment_query = Comment.objects.filter(parent__isnull=True, post=post_query, status=True)
+        comment_serialize = CommentSerializer(comment_query, many=True)
+
+        return Response({
+            "post": post_serialize,
+            "comment":comment_serialize
+        })
+    def get_queryset(self):
+        # return Post.objects.filter(id=self.kwargs['pk'])
+        return get_object_or_404(Post, id=self.kwargs['pk'])
