@@ -48,13 +48,6 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class ChildCommentSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Comment
-        fields = ('name', 'text', 'date_added')
-
-
 class CommentSerializer(serializers.ModelSerializer):
     # child_comment = ChildCommentSerializer(read_only=True, many=True)
     # child_comment = serializers.SerializerMethodField()
@@ -74,3 +67,11 @@ class AddCommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ('text',)
+
+
+class CommentStatusSerializer(serializers.ModelSerializer):
+    parent_name = serializers.ReadOnlyField()
+    class Meta:
+        model = Comment
+        fields= ('name', 'text', 'parent_name', 'status',)
+        depth = 1

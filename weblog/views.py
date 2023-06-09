@@ -13,7 +13,7 @@ from django.shortcuts import get_object_or_404
 
 from .serializers import PostSerializer, PostCreateSerializer
 from .serializers import TagSerializer, CategorySerializer
-from .serializers import CommentSerializer, AddCommentSerializer
+from .serializers import CommentSerializer, AddCommentSerializer, CommentStatusSerializer
 from .models import Post, Tag, Category, Comment
 from .pagination import AllArticlesPaginator
 from .filters import DateFilter
@@ -188,3 +188,44 @@ class AddSubCommentApiView(generics.CreateAPIView):
         parent = Comment.objects.get(id=self.kwargs["id"])
         parent.child.add(serializer.save(name=comment_name, post=post, parent=parent))
         parent.save()
+
+
+class CheckCommentApiView(generics.GenericAPIView):
+    serializer_class = CommentStatusSerializer
+    permission_classes = [permissions.IsAuthenticated, AuthenticateOwnerPost]
+
+    def get(self, request, pk):
+        comment = self.get_queryset()
+        serialize_comment = self.serializer_class(comment, many=True)
+        return Response({"comment": serialize_comment.data})
+    
+    def put(self, request, *args, **kwargs):
+        all_status = [request.data['true'],
+                      request.data['false'],
+                      request.data['delete']]
+        all_comments = []
+
+        for i in range(3):
+            for comment_id in all_status[i]:
+                comment = Comment.objects.get(id=comment_id)
+
+                if i == 0:
+                    comment.status = True
+                    comment.save()
+                    all_comments.append(comment)
+
+                elif i == 1:
+                    comment.status = False
+                    comment.save()
+                    all_comments.append(comment)
+
+                else:
+                    comment.delete()
+        
+        serialize_comments = self.serializer_class(all_comments, many=True)
+        return Response({{"comment": serialize_comments.data}})
+
+    def get_queryset(self):
+        post = get_object_or_404(Post, id=self.kwargs["pk"])
+        queryset = Comment.objects.filter(post=post)
+        return queryset

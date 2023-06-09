@@ -72,6 +72,10 @@ class Comment(models.Model):
     parent = models.ForeignKey(
         'self', on_delete=models.CASCADE, null=True, related_name="more", blank=True)
 
+    @property
+    def parent_name(self):
+        return self.parent.name
+
     def __str__(self):
         return self.post.title + " -- " + self.name
 

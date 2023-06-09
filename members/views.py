@@ -53,6 +53,8 @@ class UserLoginApiView(GenericAPIView):
         
         # return Response("", status.HTTP_400_BAD_REQUEST)
 
+
+
 def UserLogoutApiView(request):
     logout(request)
     return redirect("sign-up")

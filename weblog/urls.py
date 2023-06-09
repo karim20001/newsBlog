@@ -16,4 +16,5 @@ urlpatterns = [
     path('profile/update-post/<int:pk>', views.UpdatePostApiView.as_view()),
     path('article/<int:pk>/add-comment', views.AddCommentApiView.as_view()),
     path('article/<int:pk>/<int:id>/add-subcomment', views.AddSubCommentApiView.as_view()),
+    path('profile/<int:pk>/comments/', views.CheckCommentApiView.as_view(), name="check-comment"),
 ]
