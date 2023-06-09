@@ -73,5 +73,4 @@ class CommentStatusSerializer(serializers.ModelSerializer):
     parent_name = serializers.ReadOnlyField()
     class Meta:
         model = Comment
-        fields= ('name', 'text', 'parent_name', 'status',)
-        depth = 1
+        fields= ('id', 'name', 'text', 'parent_name', 'status',)

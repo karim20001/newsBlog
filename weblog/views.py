@@ -10,6 +10,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, status
 from rest_framework import permissions
 from django.shortcuts import get_object_or_404
+from django.core.exceptions import ValidationError
+from django.http import HttpResponseBadRequest
 
 from .serializers import PostSerializer, PostCreateSerializer
 from .serializers import TagSerializer, CategorySerializer
@@ -199,7 +201,7 @@ class CheckCommentApiView(generics.GenericAPIView):
         serialize_comment = self.serializer_class(comment, many=True)
         return Response({"comment": serialize_comment.data})
     
-    def put(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         all_status = [request.data['true'],
                       request.data['false'],
                       request.data['delete']]
@@ -207,7 +209,7 @@ class CheckCommentApiView(generics.GenericAPIView):
 
         for i in range(3):
             for comment_id in all_status[i]:
-                comment = Comment.objects.get(id=comment_id)
+                comment = self.get_object(comment_id)
 
                 if i == 0:
                     comment.status = True
@@ -223,9 +225,18 @@ class CheckCommentApiView(generics.GenericAPIView):
                     comment.delete()
         
         serialize_comments = self.serializer_class(all_comments, many=True)
-        return Response({{"comment": serialize_comments.data}})
+        return Response({"comment": serialize_comments.data})
 
     def get_queryset(self):
         post = get_object_or_404(Post, id=self.kwargs["pk"])
         queryset = Comment.objects.filter(post=post)
         return queryset
+    
+    def get_object(self, id):
+        try:
+            return self.get_queryset().get(id=id)
+        
+        except(Comment.DoesNotExist):
+            raise ValidationError("You can't modify this comment", status.HTTP_400_BAD_REQUEST)
+        
+        
