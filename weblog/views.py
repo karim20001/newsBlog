@@ -41,7 +41,7 @@ class HomeApiView(
     # permission_classes = []
 
     def get(self, request):
-        most_view = Paginator(Post.objects.all().order_by("-visitors"), 1)
+        most_view = Paginator(Post.objects.all().order_by("-visitors"), 6)
         page_number_2 = request.GET.get('page2')
         most_view = most_view.get_page(page_number_2)
         serialize_most_view= PostSerializer(most_view, many=True)
@@ -53,7 +53,7 @@ class HomeApiView(
         #     serialize_most_view = self.serializer_class(paginate_most_view, many=True)
 
         most_comment = Paginator(Post.objects.all().annotate(
-            num_comments=Count('comments')).order_by('-num_comments'), 1)
+            num_comments=Count('comments')).order_by('-num_comments'), 6)
         
         # paginate_most_comment = None
         # serialize_most_comment = None
@@ -83,7 +83,8 @@ class HomeApiView(
 class AllArticlesApiView(generics.ListAPIView):
     serializer_class = PostSerializer
     pagination_class = AllArticlesPaginator
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    search_fields = ['title', 'body']
     filterset_class = DateFilter
 
     def get_queryset(self):
@@ -237,6 +238,7 @@ class CheckCommentApiView(generics.GenericAPIView):
             return self.get_queryset().get(id=id)
         
         except(Comment.DoesNotExist):
-            raise ValidationError("You can't modify this comment", status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "Access Denied!"},
+                             status.HTTP_400_BAD_REQUEST)
         
         
